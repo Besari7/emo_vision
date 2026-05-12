@@ -1,0 +1,63 @@
+type	path	size_bytes
+file	.gitignore	961
+dir	archive	
+dir	archive/legacy	
+dir	assets	
+dir	assets/ui	
+file	assets/ui/header_emovision.png	1353741
+dir	configs	
+file	configs/final_capstone.json	1693
+dir	docs	
+dir	docs/final_report	
+file	docs/final_report/FINAL_EVIDENCE_CHECKLIST.md	1668
+file	docs/final_report/LABEL_ALIGNMENT.md	2745
+file	docs/final_report/LOCAL_ARTIFACT_LAYOUT.md	964
+file	docs/final_report/LOCAL_SETUP_WINDOWS.md	2778
+file	docs/final_report/PROJECT_FINAL_SCOPE.md	2158
+file	docs/final_report/REPO_CLEANUP_SUMMARY.md	15431
+file	pyproject.toml	934
+file	README.md	3447
+dir	reports	
+file	requirements-demo.txt	185
+file	requirements.txt	309
+dir	scripts	
+dir	scripts/final_report	
+file	scripts/final_report/build_final_evidence.py	3143
+file	scripts/final_report/check_label_alignment.py	5357
+file	scripts/final_report/check_local_artifacts.py	3536
+file	scripts/final_report/compute_metrics_from_predictions.py	7974
+file	scripts/final_report/test_model_loading.py	6023
+file	scripts/run_demo.py	2246
+dir	src	
+dir	src/multimodal_emotion	
+file	src/multimodal_emotion/__init__.py	138
+file	src/multimodal_emotion/config.py	2091
+dir	src/multimodal_emotion/data	
+file	src/multimodal_emotion/data/__init__.py	231
+file	src/multimodal_emotion/data/dataset.py	3487
+file	src/multimodal_emotion/data/manifest.py	3400
+file	src/multimodal_emotion/data/splits.py	1371
+file	src/multimodal_emotion/data/synthetic.py	3824
+dir	src/multimodal_emotion/demo	
+file	src/multimodal_emotion/demo/__init__.py	405
+file	src/multimodal_emotion/demo/fusion.py	4828
+file	src/multimodal_emotion/demo/service.py	44626
+file	src/multimodal_emotion/demo/ui.py	18438
+dir	src/multimodal_emotion/evaluation	
+file	src/multimodal_emotion/evaluation/__init__.py	207
+file	src/multimodal_emotion/evaluation/metrics.py	3067
+dir	src/multimodal_emotion/export	
+file	src/multimodal_emotion/export/__init__.py	105
+file	src/multimodal_emotion/export/onnx_export.py	2487
+dir	src/multimodal_emotion/inference	
+file	src/multimodal_emotion/inference/__init__.py	352
+file	src/multimodal_emotion/inference/ensemble.py	7177
+file	src/multimodal_emotion/inference/predictor.py	2426
+file	src/multimodal_emotion/labels.py	2929
+dir	src/multimodal_emotion/models	
+file	src/multimodal_emotion/models/__init__.py	107
+file	src/multimodal_emotion/models/fusion.py	5352
+dir	src/multimodal_emotion/training	
+file	src/multimodal_emotion/training/__init__.py	120
+file	src/multimodal_emotion/training/engine.py	5689
+file	src/multimodal_emotion/training/runtime.py	665

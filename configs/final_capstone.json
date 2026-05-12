@@ -1,0 +1,50 @@
+{
+  "project_scope": "final_capstone",
+  "canonical_labels": [
+    "neutral",
+    "surprise",
+    "fear",
+    "sadness",
+    "joy",
+    "disgust",
+    "anger"
+  ],
+  "text_branch": {
+    "model": "roberta-large",
+    "dataset": "GoEmotions",
+    "meld_adaptation": "attempted_but_not_used_due_to_class_imbalance"
+  },
+  "audio_branch": {
+    "model": "Wav2Vec2/SUPERB-ER",
+    "training_lineage": [
+      "Start from a Wav2Vec2/SUPERB-ER based emotion recognition model.",
+      "Fine-tune on CREMA-D.",
+      "Use the CREMA-D fine-tuned checkpoint as the initialization point.",
+      "Further fine-tune on RAVDESS with the final seven-class label set."
+    ],
+    "final_artifact": "wav2vec2_ravdess_7class",
+    "final_artifact_path": "artifacts/audio_models/wav2vec2_ravdess_7class",
+    "nested_final_artifact_fallback": "artifacts/audio_models/wav2vec2_ravdess_7class/best_model",
+    "note": "The final audio model, wav2vec2_ravdess_7class, was obtained by further fine-tuning the CREMA-D fine-tuned Wav2Vec2/SUPERB-ER checkpoint on RAVDESS using the final seven-class label set.",
+    "labels": [
+      "neutral",
+      "surprise",
+      "fear",
+      "sadness",
+      "joy",
+      "disgust",
+      "anger"
+    ]
+  },
+  "visual_branch": {
+    "model": "ViT-based facial-expression recognition",
+    "role": "integrated inference component",
+    "fine_tuning_status": "attempted_but_stopped_due_to_class_imbalance"
+  },
+  "fusion": {
+    "type": "text_reduced_equal_weight_probability_fusion",
+    "active_demo_implementation": "src/multimodal_emotion/demo/service.py::_weighted_fuse_named",
+    "text_multimodal_weight_reduction_ratio": 0.3,
+    "label_alignment_required": true
+  }
+}

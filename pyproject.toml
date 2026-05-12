@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "multimodal-emotion-english"
+version = "0.1.0"
+description = "Capstone multimodal emotion recognition project using RoBERTa-large text modeling, Wav2Vec2/SUPERB-ER audio modeling, ViT-based visual inference integration, and probability-level fusion."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "numpy>=1.26.0",
+  "pandas>=2.2.0",
+  "scikit-learn>=1.4.0",
+  "torch>=2.2.0",
+  "torchvision>=0.17.0",
+  "transformers>=4.40.0",
+  "safetensors",
+  "tokenizers",
+  "gradio>=5.29.0",
+  "onnx>=1.16.0",
+  "onnxruntime>=1.18.0",
+  "pillow>=10.0.0",
+  "matplotlib",
+  "imageio-ffmpeg>=0.5.1",
+  "librosa>=0.10.1",
+  "opencv-python>=4.9.0",
+  "soundfile>=0.12.1",
+  "moviepy",
+  "ffmpeg-python",
+  "accelerate",
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]

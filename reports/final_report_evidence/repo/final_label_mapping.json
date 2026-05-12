@@ -1,0 +1,17 @@
+{
+  "canonical_labels": [
+    "neutral",
+    "surprise",
+    "fear",
+    "sadness",
+    "joy",
+    "disgust",
+    "anger"
+  ],
+  "notes": [
+    "All text, audio, and video probability outputs must be converted to this canonical order before fusion.",
+    "The final audio model, wav2vec2_ravdess_7class, was obtained by further fine-tuning the CREMA-D fine-tuned Wav2Vec2/SUPERB-ER checkpoint on RAVDESS using the final seven-class label set.",
+    "Legacy configs may contain older label orders and should be treated as compatibility inputs, not final fusion order.",
+    "Final report metrics must be generated from aligned final outputs only."
+  ]
+}
