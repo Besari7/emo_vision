@@ -2,9 +2,9 @@
 
 ## Final Capstone Scope Note
 
-This repository may contain legacy/prototype components kept for compatibility and review. The final report scope is RoBERTa-large for text, Wav2Vec2/SUPERB-ER for audio, and ViT-based visual inference integration.
+This repository may contain legacy/prototype components kept for compatibility and review. The final report scope is RoBERTa-large for text, Wav2Vec2/XLS-R for audio, and ViT-based visual inference integration.
 
-The final audio model, `wav2vec2_ravdess_7class`, was obtained by further fine-tuning the CREMA-D fine-tuned Wav2Vec2/SUPERB-ER checkpoint on RAVDESS using the final seven-class label set.
+The final audio inference artifact is `wav2vec2_xlsr_savee_tess_ravdess_rf_style_earlystop`, a seven-class Wav2Vec2/XLS-R classifier aligned to the canonical label set.
 
 Older BERT, EfficientNet, or old-label-order references are legacy/prototype/compatibility code unless explicitly stated otherwise. No placeholder metrics or external model-card metrics should be interpreted as final project-owned results.
 
@@ -79,14 +79,24 @@ Open:
 Model/artifact files are local and not committed to GitHub.
 
 Expected paths:
-- `artifacts/audio_models/wav2vec2_ravdess_7class/`
-- `artifacts/text_models/roberta_large_goemotions_v2_clean_es/`
+- `artifacts/audio_models/wav2vec2_xlsr_savee_tess_ravdess_rf_style_earlystop/`
+- `artifacts/text_models/roberta_large_goemotions_ekman_v2_continued_from_direct7/`
 - `artifacts/video_models/mo-thecreator-vit-Facial-Expression-Recognition/`
 - `assets/ui/header_emovision.png`
 
 The audio and text artifact packages keep loadable model files under their `best_model/` subfolders. The demo resolves those folders automatically.
 
-CREMA-D checkpoints, such as `artifacts/audio_models/wav2vec2_cremad_bs16_lr3e5/`, document the first audio fine-tuning stage and are not the final inference path.
+The previous text artifact, `artifacts/text_models/roberta_large_goemotions_v2_clean_es/`, remains a local fallback candidate if the text branch is rolled back. The previous audio artifact, `artifacts/audio_models/wav2vec2_ravdess_7class/`, is no longer the default inference path.
+
+## Data, Artifacts, and License Policy
+
+Required model artifacts are local-only and are not distributed with this repository. Datasets and trained weights/checkpoints are not committed. This project is academic/non-commercial.
+
+Policy references:
+- [docs/final_report/LICENSE_AND_DATA_POLICY.md](docs/final_report/LICENSE_AND_DATA_POLICY.md)
+- [docs/final_report/EXPERIMENT_PLAN_LICENSE_CONTROLLED.md](docs/final_report/EXPERIMENT_PLAN_LICENSE_CONTROLLED.md)
+- [docs/final_report/DATA_ACCESS_GUIDE.md](docs/final_report/DATA_ACCESS_GUIDE.md)
+- [docs/final_report/THIRD_PARTY_NOTICES.md](docs/final_report/THIRD_PARTY_NOTICES.md)
 
 ## UI Notes
 

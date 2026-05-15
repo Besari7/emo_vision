@@ -43,15 +43,15 @@ python scripts/final_report/check_local_artifacts.py
 
 Expected local artifact paths:
 
-- Audio: `artifacts/audio_models/wav2vec2_ravdess_7class`
-- Text: `artifacts/text_models/roberta_large_goemotions_v2_clean_es`
+- Audio: `artifacts/audio_models/wav2vec2_xlsr_savee_tess_ravdess_rf_style_earlystop`
+- Text: `artifacts/text_models/roberta_large_goemotions_ekman_v2_continued_from_direct7`
 - Video: `artifacts/video_models/mo-thecreator-vit-Facial-Expression-Recognition`
 
 Audio and text keep loadable model files under `best_model/`; the demo and smoke-test scripts resolve those folders automatically.
 
-The final audio model, `wav2vec2_ravdess_7class`, was obtained by further fine-tuning the CREMA-D fine-tuned Wav2Vec2/SUPERB-ER checkpoint on RAVDESS using the final seven-class label set.
+The final audio inference artifact is `wav2vec2_xlsr_savee_tess_ravdess_rf_style_earlystop`, a seven-class Wav2Vec2/XLS-R classifier aligned to the canonical label set.
 
-CREMA-D checkpoints are the first fine-tuning stage / initialization checkpoint for the final RAVDESS model.
+The previous text artifact, `artifacts/text_models/roberta_large_goemotions_v2_clean_es`, remains a local fallback candidate if the text branch is rolled back. The previous audio artifact, `artifacts/audio_models/wav2vec2_ravdess_7class`, is no longer the default inference path.
 
 Large model files must stay under `artifacts/` and must not be pushed to GitHub.
 

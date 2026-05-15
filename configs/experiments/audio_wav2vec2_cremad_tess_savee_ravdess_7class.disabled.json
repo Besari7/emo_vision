@@ -1,0 +1,76 @@
+{
+  "experiment_name": "wav2vec2_cremad_tess_savee_ravdess_7class",
+  "experiment_enabled": false,
+  "disable_reason": "SAVEE requires registration/license approval before use.",
+  "base_artifact_path": "artifacts/audio_models/wav2vec2_cremad_bs16_lr3e5",
+  "base_artifact_path_note": "Use a local CREMA-D checkpoint path or another user-provided CREMA-D checkpoint.",
+  "output_artifact_path": "artifacts/audio_models/wav2vec2_cremad_tess_savee_ravdess_7class",
+  "canonical_label_order": [
+    "neutral",
+    "surprise",
+    "fear",
+    "sadness",
+    "joy",
+    "disgust",
+    "anger"
+  ],
+  "fine_tune_sequence": [
+    "CREMA-D checkpoint -> TESS short adaptation",
+    "TESS -> SAVEE optional adaptation (disabled)",
+    "SAVEE -> RAVDESS final alignment (canonical label order)"
+  ],
+  "label_mappings": {
+    "tess": {
+      "neutral": "neutral",
+      "pleasant surprise": "surprise",
+      "fear": "fear",
+      "sadness": "sadness",
+      "happiness": "joy",
+      "disgust": "disgust",
+      "anger": "anger"
+    },
+    "savee": {
+      "status": "pending_license_review",
+      "notes": "Define mapping only after SAVEE terms are approved."
+    },
+    "ravdess": {
+      "neutral": "neutral",
+      "surprise": "surprise",
+      "fear": "fear",
+      "sadness": "sadness",
+      "joy": "joy",
+      "disgust": "disgust",
+      "anger": "anger"
+    }
+  },
+  "datasets": [
+    {
+      "name": "CREMA-D",
+      "source": "https://audeering.github.io/datasets/datasets/crema-d.html",
+      "files_local_only": true
+    },
+    {
+      "name": "TESS",
+      "source": "https://borealisdata.ca/dataset.xhtml?persistentId=doi:10.5683/SP2/E8H2MF",
+      "files_local_only": true
+    },
+    {
+      "name": "SAVEE",
+      "source": "https://cvssp.org/savee/Register.html",
+      "files_local_only": true,
+      "requires_registration": true
+    },
+    {
+      "name": "RAVDESS",
+      "source": "https://zenodo.org/records/1188976",
+      "files_local_only": true
+    }
+  ],
+  "license_notes": [
+    "SAVEE requires registration and license approval; keep this config disabled by default.",
+    "Dataset files and checkpoints are local-only."
+  ],
+  "public_distribution_allowed": false,
+  "dataset_files_required_locally": true,
+  "training_status": "planned_not_committed"
+}

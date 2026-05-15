@@ -1,0 +1,41 @@
+{
+  "experiment_name": "roberta_large_goemotions_dailydialog_7class",
+  "base_artifact_path": "artifacts/text_models/roberta_large_goemotions_ekman_v2_continued_from_direct7/best_model",
+  "previous_base_artifact_path": "artifacts/text_models/roberta_large_goemotions_v2_clean_es/best_model",
+  "output_artifact_path": "artifacts/text_models/roberta_large_goemotions_dailydialog_7class",
+  "canonical_label_order": [
+    "neutral",
+    "surprise",
+    "fear",
+    "sadness",
+    "joy",
+    "disgust",
+    "anger"
+  ],
+  "label_mapping": {
+    "no emotion": "neutral",
+    "happiness": "joy",
+    "sadness": "sadness",
+    "anger": "anger",
+    "fear": "fear",
+    "disgust": "disgust",
+    "surprise": "surprise"
+  },
+  "class_imbalance_handling": {
+    "weighted_cross_entropy": true,
+    "weighted_random_sampler": true,
+    "notes": "Use one or both based on class distribution."
+  },
+  "dataset": {
+    "name": "DailyDialog (balanced subset)",
+    "source": "https://huggingface.co/datasets/ConvLab/dailydialog",
+    "files_local_only": true
+  },
+  "license_notes": [
+    "DailyDialog license terms must be reviewed; dataset files are local-only.",
+    "EmotionLines is evaluation/analysis-only due to CC BY-NC-ND / NoDerivatives risk; do not fine-tune on it."
+  ],
+  "public_distribution_allowed": false,
+  "dataset_files_required_locally": true,
+  "training_status": "planned_not_committed"
+}

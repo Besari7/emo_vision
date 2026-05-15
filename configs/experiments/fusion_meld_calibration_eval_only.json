@@ -1,0 +1,37 @@
+{
+  "experiment_name": "fusion_meld_calibration_eval_only",
+  "input_artifact_paths": {
+    "text": "artifacts/text_models/roberta_large_goemotions_ekman_v2_continued_from_direct7",
+    "audio": "artifacts/audio_models/wav2vec2_xlsr_savee_tess_ravdess_rf_style_earlystop",
+    "video": "artifacts/video_models/mo-thecreator-vit-Facial-Expression-Recognition"
+  },
+  "output_artifact_path": "artifacts/ensemble/meld_calibration_eval_only",
+  "canonical_label_order": [
+    "neutral",
+    "surprise",
+    "fear",
+    "sadness",
+    "joy",
+    "disgust",
+    "anger"
+  ],
+  "calibration_only": true,
+  "calibration_methods": [
+    "temperature_scaling",
+    "class_specific_bias",
+    "fusion_weight_search_optional"
+  ],
+  "meld_usage": "calibration_evaluation_only",
+  "dataset": {
+    "name": "MELD",
+    "source": "https://huggingface.co/datasets/declare-lab/MELD",
+    "files_local_only": true
+  },
+  "license_notes": [
+    "MELD is not used for full fine-tuning.",
+    "Calibration outputs are local-only artifacts unless explicitly approved."
+  ],
+  "public_distribution_allowed": false,
+  "dataset_files_required_locally": true,
+  "training_status": "planned_not_committed"
+}

@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "multimodal-emotion-english"
 version = "0.1.0"
-description = "Capstone multimodal emotion recognition project using RoBERTa-large text modeling, Wav2Vec2/SUPERB-ER audio modeling, ViT-based visual inference integration, and probability-level fusion."
+description = "Capstone multimodal emotion recognition project using RoBERTa-large text modeling, Wav2Vec2/XLS-R audio modeling, ViT-based visual inference integration, and probability-level fusion."
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [

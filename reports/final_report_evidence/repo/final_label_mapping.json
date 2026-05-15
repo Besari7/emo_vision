@@ -10,7 +10,7 @@
   ],
   "notes": [
     "All text, audio, and video probability outputs must be converted to this canonical order before fusion.",
-    "The final audio model, wav2vec2_ravdess_7class, was obtained by further fine-tuning the CREMA-D fine-tuned Wav2Vec2/SUPERB-ER checkpoint on RAVDESS using the final seven-class label set.",
+    "The final audio inference artifact is wav2vec2_xlsr_savee_tess_ravdess_rf_style_earlystop, a seven-class Wav2Vec2/XLS-R classifier aligned to the canonical label set.",
     "Legacy configs may contain older label orders and should be treated as compatibility inputs, not final fusion order.",
     "Final report metrics must be generated from aligned final outputs only."
   ]

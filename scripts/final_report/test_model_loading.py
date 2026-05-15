@@ -8,8 +8,8 @@ from types import ModuleType
 from typing import Any
 
 
-DEFAULT_TEXT_MODEL = "artifacts/text_models/roberta_large_goemotions_v2_clean_es"
-DEFAULT_AUDIO_MODEL = "artifacts/audio_models/wav2vec2_ravdess_7class"
+DEFAULT_TEXT_MODEL = "artifacts/text_models/roberta_large_goemotions_ekman_v2_continued_from_direct7"
+DEFAULT_AUDIO_MODEL = "artifacts/audio_models/wav2vec2_xlsr_savee_tess_ravdess_rf_style_earlystop"
 DEFAULT_VIDEO_MODEL = "artifacts/video_models/mo-thecreator-vit-Facial-Expression-Recognition"
 INSTALL_HINT = "Activate your virtual environment and run: pip install -r requirements-demo.txt"
 
@@ -112,13 +112,13 @@ def test_audio(audio_file: str | None) -> bool:
     librosa = require_import("librosa")
     numpy = require_import("numpy")
     print(
-        "Audio lineage: the final audio model, wav2vec2_ravdess_7class, was obtained by further "
-        "fine-tuning the CREMA-D fine-tuned Wav2Vec2/SUPERB-ER checkpoint on RAVDESS using the "
-        "final seven-class label set."
+        "Audio lineage: the final audio inference artifact is "
+        "wav2vec2_xlsr_savee_tess_ravdess_rf_style_earlystop, a seven-class Wav2Vec2/XLS-R "
+        "classifier aligned to the canonical label set."
     )
     model_path = resolve_model_path(DEFAULT_AUDIO_MODEL, "audio")
-    if "cremad" in model_path.lower():
-        print("WARNING: CREMA-D is a first-stage fine-tuning checkpoint, not the final audio inference path.")
+    if "ravdess_7class" in model_path.lower() and "xlsr" not in model_path.lower():
+        print("WARNING: This looks like the older RAVDESS audio artifact, not the current XLS-R audio path.")
     print(f"Audio model path: {model_path}")
     if not ensure_model_dir(model_path, "Audio"):
         return False

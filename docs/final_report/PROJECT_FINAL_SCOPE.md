@@ -4,7 +4,7 @@ This document defines the final capstone scope for report writing, evidence coll
 
 ## Text Branch
 
-The final text branch is RoBERTa-large fine-tuned on GoEmotions.
+The final text branch is RoBERTa-large fine-tuned on GoEmotions. The current local inference artifact is `roberta_large_goemotions_ekman_v2_continued_from_direct7`.
 
 MELD adaptation was attempted during development, but it was stopped early because class imbalance and poor validation behavior made it unsuitable for final reporting.
 
@@ -12,11 +12,11 @@ BERT references in the repository are legacy/prototype or checkpoint-compatibili
 
 ## Audio Branch
 
-The final audio branch is Wav2Vec2 / SUPERB-ER based emotion recognition trained in two stages.
+The final audio branch is Wav2Vec2/XLS-R based emotion recognition.
 
-The final audio model, `wav2vec2_ravdess_7class`, was obtained by further fine-tuning the CREMA-D fine-tuned Wav2Vec2/SUPERB-ER checkpoint on RAVDESS using the final seven-class label set.
+The final audio inference artifact is `wav2vec2_xlsr_savee_tess_ravdess_rf_style_earlystop`, a seven-class Wav2Vec2/XLS-R classifier aligned to the canonical label set.
 
-CREMA-D is therefore the first fine-tuning stage / initialization checkpoint for the final RAVDESS seven-class model. It should not be described as unrelated or used as the final inference path.
+The previous audio artifact, `wav2vec2_ravdess_7class`, is no longer the default inference path. It should only be described as historical or fallback material if explicitly needed.
 
 The final canonical emotion labels are:
 

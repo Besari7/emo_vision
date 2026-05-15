@@ -26,9 +26,9 @@ Each modality should expose probabilities as a mapping from label name to score,
 
 Text outputs should be normalized from GoEmotions-style labels into canonical labels. For example, `happy` and `happiness` map to `joy`.
 
-Audio outputs should normalize common CREMA-D/RAVDESS abbreviations and labels. For example, `neu` maps to `neutral`, `hap` maps to `joy`, and `ang` maps to `anger`.
+Audio outputs should normalize common dataset abbreviations and labels. For example, `neu` maps to `neutral`, `hap` maps to `joy`, `ang` maps to `anger`, and `angry` maps to `anger`.
 
-The final audio model, `wav2vec2_ravdess_7class`, was obtained by further fine-tuning the CREMA-D fine-tuned Wav2Vec2/SUPERB-ER checkpoint on RAVDESS using the final seven-class label set. CREMA-D is part of the training lineage, while the final inference artifact remains the RAVDESS seven-class model path.
+The final audio inference artifact is `wav2vec2_xlsr_savee_tess_ravdess_rf_style_earlystop`, a seven-class Wav2Vec2/XLS-R classifier aligned to the canonical label set. Its native label order is `angry`, `disgust`, `fear`, `happy`, `neutral`, `sad`, `surprise`, so outputs must be normalized before fusion.
 
 Visual outputs should normalize facial-expression labels and aliases. For example, `angry` maps to `anger`, `fearful` maps to `fear`, and `surprised` maps to `surprise`.
 

@@ -4,8 +4,8 @@ from pathlib import Path
 
 
 MODEL_PATHS = {
-    "text": Path("artifacts/text_models/roberta_large_goemotions_v2_clean_es"),
-    "audio": Path("artifacts/audio_models/wav2vec2_ravdess_7class"),
+    "text": Path("artifacts/text_models/roberta_large_goemotions_ekman_v2_continued_from_direct7"),
+    "audio": Path("artifacts/audio_models/wav2vec2_xlsr_savee_tess_ravdess_rf_style_earlystop"),
     "video": Path("artifacts/video_models/mo-thecreator-vit-Facial-Expression-Recognition"),
 }
 
@@ -72,9 +72,9 @@ def check_model_package(name: str, package_path: Path, model_type: str) -> bool:
 def main() -> int:
     print("Checking local model artifact directories. Models are not loaded.")
     print(
-        "Audio lineage: the final audio model, wav2vec2_ravdess_7class, was obtained by further "
-        "fine-tuning the CREMA-D fine-tuned Wav2Vec2/SUPERB-ER checkpoint on RAVDESS using the "
-        "final seven-class label set."
+        "Audio lineage: the final audio inference artifact is "
+        "wav2vec2_xlsr_savee_tess_ravdess_rf_style_earlystop, a seven-class Wav2Vec2/XLS-R "
+        "classifier aligned to the canonical label set."
     )
 
     text_found = check_model_package("text", MODEL_PATHS["text"], "text")

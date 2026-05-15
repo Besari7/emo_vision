@@ -12,20 +12,25 @@
   "text_branch": {
     "model": "roberta-large",
     "dataset": "GoEmotions",
+    "final_artifact": "roberta_large_goemotions_ekman_v2_continued_from_direct7",
+    "final_artifact_path": "artifacts/text_models/roberta_large_goemotions_ekman_v2_continued_from_direct7",
+    "nested_final_artifact_fallback": "artifacts/text_models/roberta_large_goemotions_ekman_v2_continued_from_direct7/best_model",
+    "previous_artifact": "artifacts/text_models/roberta_large_goemotions_v2_clean_es",
     "meld_adaptation": "attempted_but_not_used_due_to_class_imbalance"
   },
   "audio_branch": {
-    "model": "Wav2Vec2/SUPERB-ER",
+    "model": "Wav2Vec2/XLS-R",
     "training_lineage": [
-      "Start from a Wav2Vec2/SUPERB-ER based emotion recognition model.",
-      "Fine-tune on CREMA-D.",
-      "Use the CREMA-D fine-tuned checkpoint as the initialization point.",
-      "Further fine-tune on RAVDESS with the final seven-class label set."
+      "Use a Wav2Vec2/XLS-R sequence-classification backbone.",
+      "Fine-tune with seven-class emotion labels.",
+      "Use SAVEE, TESS, and RAVDESS aligned to the final canonical label set.",
+      "Select the checkpoint with validation macro-F1 early stopping."
     ],
-    "final_artifact": "wav2vec2_ravdess_7class",
-    "final_artifact_path": "artifacts/audio_models/wav2vec2_ravdess_7class",
-    "nested_final_artifact_fallback": "artifacts/audio_models/wav2vec2_ravdess_7class/best_model",
-    "note": "The final audio model, wav2vec2_ravdess_7class, was obtained by further fine-tuning the CREMA-D fine-tuned Wav2Vec2/SUPERB-ER checkpoint on RAVDESS using the final seven-class label set.",
+    "final_artifact": "wav2vec2_xlsr_savee_tess_ravdess_rf_style_earlystop",
+    "final_artifact_path": "artifacts/audio_models/wav2vec2_xlsr_savee_tess_ravdess_rf_style_earlystop",
+    "nested_final_artifact_fallback": "artifacts/audio_models/wav2vec2_xlsr_savee_tess_ravdess_rf_style_earlystop/best_model",
+    "previous_artifact": "artifacts/audio_models/wav2vec2_ravdess_7class",
+    "note": "The final audio inference artifact is wav2vec2_xlsr_savee_tess_ravdess_rf_style_earlystop, a seven-class Wav2Vec2/XLS-R classifier aligned to the canonical label set.",
     "labels": [
       "neutral",
       "surprise",

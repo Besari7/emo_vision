@@ -6,7 +6,11 @@ Use this checklist to collect final report evidence. Files should be generated f
 
 When generating metrics from integer class ids or probability arrays, pass the text artifact config as the label source:
 
-`python scripts/final_report/compute_metrics_from_predictions.py --preds artifacts/text_models/roberta_large_goemotions_v2_clean_es/test_preds.npy --labels artifacts/text_models/roberta_large_goemotions_v2_clean_es/test_labels.npy --model-config artifacts/text_models/roberta_large_goemotions_v2_clean_es/best_model/config.json --output-dir reports/final_report_evidence/text`
+Current text artifact: `artifacts/text_models/roberta_large_goemotions_ekman_v2_continued_from_direct7`
+
+If integer class ids or probability arrays are exported for this artifact, use:
+
+`python scripts/final_report/compute_metrics_from_predictions.py --preds PATH_TO_TEXT_PREDS.npy --labels PATH_TO_TEXT_LABELS.npy --model-config artifacts/text_models/roberta_large_goemotions_ekman_v2_continued_from_direct7/best_model/config.json --output-dir reports/final_report_evidence/text`
 
 - `text/test_metrics.json`
 - `text/test_preds.npy`
@@ -16,7 +20,7 @@ When generating metrics from integer class ids or probability arrays, pass the t
 
 ## Audio Evidence
 
-The final audio model, `wav2vec2_ravdess_7class`, was obtained by further fine-tuning the CREMA-D fine-tuned Wav2Vec2/SUPERB-ER checkpoint on RAVDESS using the final seven-class label set.
+The final audio inference artifact is `wav2vec2_xlsr_savee_tess_ravdess_rf_style_earlystop`, a seven-class Wav2Vec2/XLS-R classifier aligned to the canonical label set.
 
 When generating metrics from integer class ids or probability arrays, pass the audio artifact config as the label source.
 

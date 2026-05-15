@@ -1,11 +1,12 @@
 # Repository Cleanup Summary
 
 Date inspected: 2026-05-11
+Model default update: 2026-05-15
 
 Scope used for this review:
 
-- Text branch final scope: RoBERTa-large fine-tuned on GoEmotions.
-- Audio branch final scope: Wav2Vec2 / SUPERB-ER based emotion recognition trained in two stages. The final audio model, `wav2vec2_ravdess_7class`, was obtained by further fine-tuning the CREMA-D fine-tuned Wav2Vec2/SUPERB-ER checkpoint on RAVDESS using the final seven-class label set.
+- Text branch final scope: RoBERTa-large fine-tuned on GoEmotions. Current local artifact: `roberta_large_goemotions_ekman_v2_continued_from_direct7`.
+- Audio branch final scope: Wav2Vec2/XLS-R based emotion recognition. Current local artifact: `wav2vec2_xlsr_savee_tess_ravdess_rf_style_earlystop`.
 - Visual branch final scope: ViT-based facial-expression recognition integration, inference adaptation, label/probability alignment, backend/frontend compatibility, demo support, and fusion compatibility.
 - Canonical label order: `neutral`, `surprise`, `fear`, `sadness`, `joy`, `disgust`, `anger`.
 - Fusion requirement: all modality probability outputs must be aligned to the canonical label order before fusion.
@@ -94,7 +95,7 @@ Scope used for this review:
 
 - `src/multimodal_emotion/models/fusion.py`
   - Keep the BERT/Roberta branches for checkpoint compatibility.
-  - Final documentation should describe RoBERTa, Wav2Vec2/SUPERB-ER, ViT, and aligned probability fusion.
+  - Final documentation should describe RoBERTa, Wav2Vec2/XLS-R, ViT, and aligned probability fusion.
 
 - `src/multimodal_emotion/training/engine.py`
   - Computes validation metrics and confusion records dynamically.
@@ -142,9 +143,9 @@ Scope used for this review:
    - Keep any future non-ViT visual code clearly marked as legacy/prototype compatibility.
 
 5. Update audio-branch wording.
-   - Final-facing documentation should describe `wav2vec2_ravdess_7class` as the final audio inference artifact.
-   - State that CREMA-D is the first fine-tuning stage / initialization checkpoint, followed by RAVDESS seven-class fine-tuning.
-   - Distinguish generic `facebook/wav2vec2-base` feature extraction from the final trained audio classifier artifact.
+   - Final-facing documentation should describe `wav2vec2_xlsr_savee_tess_ravdess_rf_style_earlystop` as the final audio inference artifact.
+   - Treat `wav2vec2_ravdess_7class` as the previous audio artifact, not the default inference path.
+   - Distinguish generic Wav2Vec2/XLS-R feature extraction from the final trained audio classifier artifact.
 
 6. Audit final report evidence.
    - Do not include synthetic dataset outputs, placeholder ONNX export examples, unverified validation logs, or external model-card scores as project-owned final results.
@@ -152,7 +153,7 @@ Scope used for this review:
 
 7. Add a small label-alignment test before cleanup.
    - Test that text, audio, video, ensemble, and fusion outputs all expose probabilities in the canonical order.
-   - Include alias coverage for GoEmotions, CREMA-D/RAVDESS, and facial-expression labels.
+   - Include alias coverage for GoEmotions-style text labels, audio dataset labels, and facial-expression labels.
 
 ## Risky Files That Should Not Be Deleted Yet
 
