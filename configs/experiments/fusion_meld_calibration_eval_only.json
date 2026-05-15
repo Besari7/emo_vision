@@ -3,7 +3,7 @@
   "input_artifact_paths": {
     "text": "artifacts/text_models/roberta_large_goemotions_ekman_v2_continued_from_direct7",
     "audio": "artifacts/audio_models/wav2vec2_xlsr_savee_tess_ravdess_rf_style_earlystop",
-    "video": "artifacts/video_models/mo-thecreator-vit-Facial-Expression-Recognition"
+    "video": "artifacts/video_models/vit_based_fer_model"
   },
   "output_artifact_path": "artifacts/ensemble/meld_calibration_eval_only",
   "canonical_label_order": [

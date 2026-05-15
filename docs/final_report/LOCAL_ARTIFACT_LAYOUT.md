@@ -6,7 +6,7 @@ Model artifacts are local files and should remain under `artifacts/`.
 
 - Audio: `artifacts/audio_models/wav2vec2_xlsr_savee_tess_ravdess_rf_style_earlystop`
 - Text: `artifacts/text_models/roberta_large_goemotions_ekman_v2_continued_from_direct7`
-- Video: `artifacts/video_models/mo-thecreator-vit-Facial-Expression-Recognition`
+- Video: `artifacts/video_models/vit_based_fer_model`
 
 Audio and text keep loadable model files under `best_model/`; the demo resolves those folders automatically.
 

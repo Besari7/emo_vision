@@ -3,7 +3,8 @@
 This guide uses PowerShell from the repository root:
 
 ```powershell
-cd C:\Users\berke\multimodel_emotion_recognition-main
+git clone https://github.com/Besari7/emo_vision.git
+cd emo_vision
 ```
 
 ## 1. Create and Activate a Virtual Environment
@@ -45,7 +46,7 @@ Expected local artifact paths:
 
 - Audio: `artifacts/audio_models/wav2vec2_xlsr_savee_tess_ravdess_rf_style_earlystop`
 - Text: `artifacts/text_models/roberta_large_goemotions_ekman_v2_continued_from_direct7`
-- Video: `artifacts/video_models/mo-thecreator-vit-Facial-Expression-Recognition`
+- Video: `artifacts/video_models/vit_based_fer_model`
 
 Audio and text keep loadable model files under `best_model/`; the demo and smoke-test scripts resolve those folders automatically.
 
@@ -53,7 +54,7 @@ The final audio inference artifact is `wav2vec2_xlsr_savee_tess_ravdess_rf_style
 
 The previous text artifact, `artifacts/text_models/roberta_large_goemotions_v2_clean_es`, remains a local fallback candidate if the text branch is rolled back. The previous audio artifact, `artifacts/audio_models/wav2vec2_ravdess_7class`, is no longer the default inference path.
 
-Large model files must stay under `artifacts/` and must not be pushed to GitHub.
+Large model files must stay under `artifacts/` and must not be pushed to GitHub. The local video model directory is `artifacts/video_models/vit_based_fer_model`; its weights are required for local inference but are not part of the public repository.
 
 ## 4. Smoke Test Model Loading
 

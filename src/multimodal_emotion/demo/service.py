@@ -16,6 +16,15 @@ import numpy as np
 import torch
 from transformers import pipeline
 
+from multimodal_emotion.inference import (
+    AudioEmotionPredictor,
+    FusionEngine,
+    PredictionResult,
+    TextEmotionPredictor,
+    VideoEmotionPredictor,
+    load_runtime_config,
+)
+
 from .fusion import (
     AUDIO_LABEL_MAP,
     COMMON_LABELS,
@@ -30,11 +39,11 @@ from .fusion import (
 
 @dataclass(slots=True)
 class DemoModelConfig:
-    asr_model_name: str = "openai/whisper-tiny.en"
-    sample_frames: int = 8
+    asr_model_name: str = "openai/whisper-small.en"
+    sample_frames: int = 16
     hf_audio_model_name: str = "artifacts/audio_models/wav2vec2_xlsr_savee_tess_ravdess_rf_style_earlystop"
     hf_text_model_name: str = "artifacts/text_models/roberta_large_goemotions_ekman_v2_continued_from_direct7"
-    hf_video_model_name: str = "artifacts/video_models/mo-thecreator-vit-Facial-Expression-Recognition"
+    hf_video_model_name: str = "artifacts/video_models/vit_based_fer_model"
     frame_stats_default_max_frames: int = 120
     face_padding_ratio: float = 0.28
     face_smoothing_alpha: float = 0.70
@@ -51,7 +60,8 @@ class DemoModelConfig:
     video_only_neutral_reduction_ratio: float = 0.70
     video_disgust_suppression_ratio: float = 0.50
     text_multimodal_weight_reduction_ratio: float = 0.30
-    text_chunk_max_tokens: int = 180
+    text_chunk_max_tokens: int = 48
+    text_chunk_pooling: str = "weighted"
     text_neutral_suppression_enabled: bool = True
     text_neutral_suppression_ratio: float = 0.60
     text_neutral_suppression_min_neutral: float = 0.35
@@ -60,20 +70,40 @@ class DemoModelConfig:
     audio_hop_seconds: float = 0.8
     audio_min_active_rms: float = 0.006
     audio_dynamic_rms_ratio: float = 0.25
-    audio_temperature: float = 1.8
+    text_temperature: float = 1.0
+    audio_temperature: float = 1.4
+    video_temperature: float = 1.3
     video_temporal_smoothing_window: int = 3
     video_missing_face_frame_weight: float = 0.25
 
 
 class MultimodalDemoAnalyzer:
     def __init__(self, config: DemoModelConfig | None = None) -> None:
-        self.config = config or DemoModelConfig()
+        self.runtime_config = load_runtime_config(validate_paths=False)
+        if config is None:
+            self.config = DemoModelConfig(
+                hf_text_model_name=self.runtime_config.model_paths.text,
+                hf_audio_model_name=self.runtime_config.model_paths.audio,
+                hf_video_model_name=self.runtime_config.model_paths.video,
+                text_temperature=self.runtime_config.temperatures["text"],
+                audio_temperature=self.runtime_config.temperatures["audio"],
+                video_temperature=self.runtime_config.temperatures["video"],
+            )
+        else:
+            self.config = config
         self.pipeline_device = 0 if torch.cuda.is_available() else -1
 
         self._asr_pipeline = None
         self._hf_text_pipeline = None
         self._hf_audio_pipeline = None
         self._hf_video_pipeline = None
+        self._text_predictor = None
+        self._audio_predictor = None
+        self._video_predictor = None
+        self._fusion_engine = FusionEngine(
+            global_weights=self.runtime_config.global_weights,
+            confidence_gating=self.runtime_config.confidence_gating,
+        )
         self._cancel_requested = threading.Event()
         self._face_cascade = cv2.CascadeClassifier(
             str(Path(cv2.data.haarcascades) / "haarcascade_frontalface_default.xml")
@@ -105,9 +135,9 @@ class MultimodalDemoAnalyzer:
 
     def preload_models(self) -> dict[str, str]:
         _ = self.asr_pipeline
-        _ = self.hf_text_pipeline
-        _ = self.hf_audio_pipeline
-        _ = self.hf_video_pipeline
+        _ = self.text_predictor
+        _ = self.audio_predictor
+        _ = self.video_predictor
         return {
             "asr": self.config.asr_model_name,
             "text_model": self.config.hf_text_model_name,
@@ -126,8 +156,43 @@ class MultimodalDemoAnalyzer:
                 feature_extractor=model_name,
                 device=self.pipeline_device,
                 chunk_length_s=20,
+                generate_kwargs={
+                    "temperature": 0.0,
+                    "num_beams": 5,
+                },
             )
         return self._asr_pipeline
+
+    @property
+    def text_predictor(self):
+        if self._text_predictor is None:
+            self._text_predictor = TextEmotionPredictor(
+                model_path=self.config.hf_text_model_name,
+                temperature=self.config.text_temperature,
+                chunk_max_tokens=self.config.text_chunk_max_tokens,
+                chunk_pooling=self.config.text_chunk_pooling,
+            )
+        return self._text_predictor
+
+    @property
+    def audio_predictor(self):
+        if self._audio_predictor is None:
+            self._audio_predictor = AudioEmotionPredictor(
+                model_path=self.config.hf_audio_model_name,
+                temperature=self.config.audio_temperature,
+            )
+        return self._audio_predictor
+
+    @property
+    def video_predictor(self):
+        if self._video_predictor is None:
+            self._video_predictor = VideoEmotionPredictor(
+                model_path=self.config.hf_video_model_name,
+                temperature=self.config.video_temperature,
+                sample_frames=self.config.sample_frames,
+                face_margin_ratio=self.config.face_padding_ratio,
+            )
+        return self._video_predictor
 
     @property
     def hf_text_pipeline(self):
@@ -639,6 +704,34 @@ class MultimodalDemoAnalyzer:
         return values / total
 
     @staticmethod
+    def _prediction_probabilities(result: PredictionResult) -> dict[str, float]:
+        if not result.available or result.probs is None:
+            return {label: 0.0 for label in COMMON_LABELS}
+        return {label: float(result.probs[index]) for index, label in enumerate(COMMON_LABELS)}
+
+    @staticmethod
+    def _summary_from_prediction(result: PredictionResult, note: str | None = None) -> ModalitySummary:
+        probabilities = MultimodalDemoAnalyzer._prediction_probabilities(result)
+        quality = float(result.quality.get("quality_weight_multiplier", 1.0 if result.available else 0.0))
+        status = "ok" if result.available else "missing"
+        return ModalitySummary(
+            name=result.modality,
+            status=status,
+            probabilities=probabilities,
+            confidence=float(result.confidence),
+            quality=quality,
+            note=note or result.error or f"{result.modality.title()} model completed.",
+        )
+
+    @staticmethod
+    def _probabilities_from_logits(logits: np.ndarray, temperature: float) -> dict[str, float]:
+        values = np.asarray(logits, dtype=np.float64)
+        shifted = (values / float(temperature)) - np.max(values / float(temperature))
+        exp_values = np.exp(shifted)
+        probabilities = MultimodalDemoAnalyzer._normalize_probability_array(exp_values)
+        return {label: float(probabilities[index]) for index, label in enumerate(COMMON_LABELS)}
+
+    @staticmethod
     def _temperature_smooth_probabilities(
         probabilities: dict[str, float],
         temperature: float,
@@ -674,6 +767,16 @@ class MultimodalDemoAnalyzer:
         if tokenizer is None:
             return max(1, len(text.split()))
         return max(1, len(tokenizer.encode(text, add_special_tokens=False)))
+
+    @staticmethod
+    def _text_asr_quality_multiplier(transcript_source: str | None) -> float:
+        if transcript_source == "manual":
+            return 1.0
+        if transcript_source == "whisper":
+            return 0.92
+        if transcript_source in {"missing", "empty"}:
+            return 0.0
+        return 0.90
 
     def _split_text_chunks(self, transcript: str) -> list[str]:
         tokenizer = getattr(self.hf_text_pipeline, "tokenizer", None)
@@ -756,29 +859,9 @@ class MultimodalDemoAnalyzer:
         )
         return {label: float(adjusted_values[index]) for index, label in enumerate(COMMON_LABELS)}, removed_mass > 0.0
 
-    def classify_hf_text(self, transcript: str) -> ModalitySummary:
-        if not transcript.strip():
-            return ModalitySummary(
-                name="text",
-                status="missing",
-                probabilities={label: 0.0 for label in COMMON_LABELS},
-                confidence=0.0,
-                quality=0.0,
-                note="Text model skipped because transcript is empty.",
-            )
+    def classify_hf_text(self, transcript: str, transcript_source: str | None = None) -> tuple[ModalitySummary, list[dict]]:
         try:
-            chunks = self._split_text_chunks(transcript)
-            chunk_probabilities: list[dict[str, float]] = []
-            chunk_weights: list[float] = []
-            for chunk in chunks:
-                predictions = self.hf_text_pipeline(chunk)
-                prediction_list = predictions[0] if predictions and isinstance(predictions[0], list) else predictions
-                probabilities = remap_predictions(prediction_list, TEXT_LABEL_MAP)
-                token_count = float(self._text_token_count(chunk))
-                non_neutral_mass = 1.0 - float(probabilities.get("neutral", 0.0))
-                chunk_weight = token_count * (0.50 + min(max(non_neutral_mass, 0.0), 1.0))
-                chunk_probabilities.append(probabilities)
-                chunk_weights.append(max(chunk_weight, 1.0))
+            result, chunk_rows = self.text_predictor.predict_with_chunks(transcript)
         except Exception as error:
             return ModalitySummary(
                 name="text",
@@ -787,35 +870,28 @@ class MultimodalDemoAnalyzer:
                 confidence=0.0,
                 quality=0.0,
                 note=f"Text model unavailable ({error}).",
-            )
+            ), []
 
-        weights = np.array(chunk_weights, dtype=np.float64)
-        weights = weights / weights.sum()
-        aggregated = np.zeros(len(COMMON_LABELS), dtype=np.float64)
-        for weight, probabilities in zip(weights, chunk_probabilities, strict=True):
-            aggregated += weight * np.array([probabilities[label] for label in COMMON_LABELS], dtype=np.float64)
-        aggregated = self._normalize_probability_array(aggregated)
-        probabilities = {label: float(aggregated[index]) for index, label in enumerate(COMMON_LABELS)}
-        probabilities, neutral_suppressed = self._suppress_text_neutral(probabilities)
-        confidence = confidence_from_scores(probabilities)
-        quality = min(max(len(transcript.split()) / 14.0, 0.35), 1.0)
-        return ModalitySummary(
-            name="text",
-            status="ok",
-            probabilities=probabilities,
-            confidence=confidence,
-            quality=quality,
+        if result.available:
+            asr_multiplier = self._text_asr_quality_multiplier(transcript_source)
+            existing_quality = float(result.quality.get("quality_weight_multiplier", 1.0))
+            result.quality["asr_quality_multiplier"] = float(asr_multiplier)
+            result.quality["quality_weight_multiplier"] = float(existing_quality * asr_multiplier)
+        else:
+            asr_multiplier = 0.0
+
+        summary = self._summary_from_prediction(
+            result,
             note=(
-                "Text model scored transcript chunks. "
-                f"chunk_count={len(chunk_probabilities)}, truncated=False, aggregation=chunk_weighted_mean, "
-                f"neutral_suppressed={neutral_suppressed}"
-                + (
-                    f", ratio={self.config.text_neutral_suppression_ratio:.2f}."
-                    if neutral_suppressed
-                    else "."
-                )
+                "Text model scored transcript chunks with canonical logit alignment. "
+                f"pooling={getattr(self.text_predictor, 'chunk_pooling', 'weighted')}; "
+                f"chunks={len(chunk_rows)}; temperature={self.config.text_temperature:.1f}; "
+                f"asr_quality={asr_multiplier:.2f}."
+                if result.available
+                else result.error
             ),
         )
+        return summary, chunk_rows
 
     def _audio_window_ranges(self, total_samples: int, sample_rate: int) -> list[tuple[int, int]]:
         window_samples = max(1, int(self.config.audio_window_seconds * sample_rate))
@@ -861,15 +937,13 @@ class MultimodalDemoAnalyzer:
             if chunk.size == 0 or rms_values[window_no] < active_threshold:
                 continue
             try:
-                predictions = self.hf_audio_pipeline(
-                    {"array": chunk.astype(np.float32), "sampling_rate": sample_rate}
-                )
+                result = self.audio_predictor.predict_waveform(chunk.astype(np.float32), sample_rate)
             except Exception as error:
                 raise RuntimeError(f"Audio timeline extraction failed ({error}).") from error
+            if not result.available or result.probs is None:
+                continue
 
-            prediction_list = predictions[0] if predictions and isinstance(predictions[0], list) else predictions
-            probs = remap_predictions(prediction_list, AUDIO_LABEL_MAP)
-            probs = self._temperature_smooth_probabilities(probs, self.config.audio_temperature)
+            probs = {label: float(result.probs[index]) for index, label in enumerate(COMMON_LABELS)}
             top_emotion = max(probs, key=probs.get)
             top_conf = float(probs[top_emotion])
             row = {
@@ -912,29 +986,8 @@ class MultimodalDemoAnalyzer:
         return chart_rows, window_rows, meta
 
     def classify_hf_audio(self, audio_path: Path | None) -> ModalitySummary:
-        if audio_path is None:
-            return ModalitySummary(
-                name="audio",
-                status="missing",
-                probabilities={label: 0.0 for label in COMMON_LABELS},
-                confidence=0.0,
-                quality=0.0,
-                note="Audio model skipped because no audio track exists.",
-            )
-
-        waveform, sample_rate = librosa.load(str(audio_path), sr=16000, mono=True)
-        if waveform.size == 0:
-            return ModalitySummary(
-                name="audio",
-                status="missing",
-                probabilities={label: 0.0 for label in COMMON_LABELS},
-                confidence=0.0,
-                quality=0.0,
-                note="Audio model skipped because waveform is empty.",
-            )
-
         try:
-            _, _, audio_meta = self._score_active_audio_windows(waveform, sample_rate)
+            result = self.audio_predictor.predict(audio_path)
         except Exception as error:
             return ModalitySummary(
                 name="audio",
@@ -945,37 +998,16 @@ class MultimodalDemoAnalyzer:
                 note=f"Audio model unavailable ({error}).",
             )
 
-        probability_vectors = audio_meta["probability_vectors"]
-        if not probability_vectors:
-            return ModalitySummary(
-                name="audio",
-                status="missing",
-                probabilities={label: 0.0 for label in COMMON_LABELS},
-                confidence=0.0,
-                quality=0.0,
-                note=(
-                    "Audio model skipped because no active speech windows passed the RMS gate. "
-                    f"active_windows=0/{audio_meta['total_count']}, rms_threshold={audio_meta['active_threshold']:.4f}."
-                ),
-            )
-
-        stacked = np.stack(probability_vectors, axis=0)
-        aggregated = self._normalize_probability_array((0.65 * np.median(stacked, axis=0)) + (0.35 * np.mean(stacked, axis=0)))
-        probabilities = {label: float(aggregated[index]) for index, label in enumerate(COMMON_LABELS)}
-        confidence = confidence_from_scores(probabilities)
-        active_ratio = float(audio_meta["active_ratio"])
-        consistency = float(audio_meta["consistency"])
-        quality = min(max(active_ratio * (0.45 + (0.55 * consistency)), 0.10), 1.0)
-        return ModalitySummary(
-            name="audio",
-            status="ok",
-            probabilities=probabilities,
-            confidence=confidence,
-            quality=quality,
+        return self._summary_from_prediction(
+            result,
             note=(
-                "Audio model scored active speech windows with RMS gating and temperature smoothing. "
-                f"active_windows={audio_meta['active_count']}/{audio_meta['total_count']}, "
-                f"consistency={consistency:.2f}, temperature={self.config.audio_temperature:.1f}."
+                "Audio model scored 16 kHz waveform chunks with mean-logit aggregation. "
+                f"chunks={result.quality.get('num_chunks', 0)}, "
+                f"duration={float(result.quality.get('duration_sec', 0.0)):.2f}s, "
+                f"rms={float(result.quality.get('rms', 0.0)):.5f}, "
+                f"temperature={self.config.audio_temperature:.1f}."
+                if result.available
+                else result.error
             ),
         )
 
@@ -1014,11 +1046,30 @@ class MultimodalDemoAnalyzer:
             )
 
         face_frames, face_meta = self._extract_face_focus_frames(frames)
-        from PIL import Image
-
-        images = [Image.fromarray(frame) for frame in face_frames]
+        face_ratio = float(face_meta["face_ratio"])
+        fallback = bool(self._face_cascade.empty())
+        if face_ratio <= 0.0 and not fallback:
+            return ModalitySummary(
+                name="video",
+                status="missing",
+                probabilities={label: 0.0 for label in COMMON_LABELS},
+                confidence=0.0,
+                quality=0.0,
+                note=f"Video model skipped because no faces were detected. {frame_note}",
+            )
+        quality = self.config.video_missing_face_frame_weight if fallback else min(max(face_ratio, 0.10), 1.0)
         try:
-            predictions = self.hf_video_pipeline(images)
+            result = self.video_predictor.predict_images(
+                face_frames,
+                fallback=fallback,
+                quality={
+                    "face_ratio": face_ratio,
+                    "face_detected_frames": face_meta["face_detected_frames"],
+                    "sampled_frames": len(face_frames),
+                    "fallback": fallback,
+                    "quality_weight_multiplier": quality,
+                },
+            )
         except Exception as error:
             return ModalitySummary(
                 name="video",
@@ -1029,44 +1080,16 @@ class MultimodalDemoAnalyzer:
                 note=f"Video model unavailable ({error}).",
             )
 
-        if predictions and not isinstance(predictions[0], list):
-            predictions = [predictions]
-
-        video_prob_rows: list[dict[str, float]] = []
-        for frame_predictions in predictions:
-            remapped = remap_predictions(frame_predictions, VIDEO_LABEL_MAP)
-            video_prob_rows.append(self._adjust_video_probabilities(remapped))
-
-        video_prob_rows = self._smooth_probability_sequence(video_prob_rows)
-        detected_flags = list(face_meta.get("detected_flags", []))
-        weights = np.array(
-            [
-                1.0 if index < len(detected_flags) and detected_flags[index] else self.config.video_missing_face_frame_weight
-                for index in range(len(video_prob_rows))
-            ],
-            dtype=np.float64,
-        )
-        if weights.sum() <= 0.0:
-            weights = np.ones(len(video_prob_rows), dtype=np.float64)
-        aggregated = np.zeros(len(COMMON_LABELS), dtype=np.float64)
-        for weight, probabilities in zip(weights / weights.sum(), video_prob_rows, strict=True):
-            aggregated += weight * np.array([probabilities[label] for label in COMMON_LABELS], dtype=np.float64)
-        aggregated = self._normalize_probability_array(aggregated)
-        probabilities = {label: float(aggregated[index]) for index, label in enumerate(COMMON_LABELS)}
-
-        face_ratio = float(face_meta["face_ratio"])
-        quality = min(max(face_ratio, 0.10), 1.0)
         reliability_note = " Low reliability: face detection was intermittent." if face_ratio < 0.75 else ""
-        return ModalitySummary(
-            name="video",
-            status="ok",
-            probabilities=probabilities,
-            confidence=confidence_from_scores(probabilities),
-            quality=quality,
+        return self._summary_from_prediction(
+            result,
             note=(
                 "Video model scored face-focused frame crops with temporal smoothing. "
                 f"{frame_note} Face-detected frames: {face_meta['face_detected_frames']}/{len(face_frames)} "
-                f"({face_ratio * 100.0:.1f}%).{reliability_note}"
+                f"({face_ratio * 100.0:.1f}%). "
+                f"temperature={self.config.video_temperature:.1f}.{reliability_note}"
+                if result.available
+                else result.error
             ),
         )
 
@@ -1084,7 +1107,7 @@ class MultimodalDemoAnalyzer:
             self._raise_if_cancelled()
             transcript, transcript_source, transcript_note = self.transcribe_audio(audio_path, transcript_override)
             self._raise_if_cancelled()
-            text_modality = self.classify_hf_text(transcript)
+            text_modality, text_chunk_rows = self.classify_hf_text(transcript, transcript_source)
             self._raise_if_cancelled()
             audio_modality = self.classify_hf_audio(audio_path)
             self._raise_if_cancelled()
@@ -1103,12 +1126,9 @@ class MultimodalDemoAnalyzer:
             preview_video_path = self._write_preprocessed_preview(face_frames, frame_indices)
             self._raise_if_cancelled()
 
-            from PIL import Image
-
-            images = [Image.fromarray(frame) for frame in face_frames]
-            predictions = self.hf_video_pipeline(images)
-            if predictions and not isinstance(predictions[0], list):
-                predictions = [predictions]
+            frame_logits = self.video_predictor.predict_frame_logits(face_frames)
+            if not frame_logits:
+                raise ValueError("Video model did not return frame logits for the sampled frames.")
 
             per_frame_rows: list[dict] = []
             chart_rows: list[dict] = []
@@ -1123,10 +1143,10 @@ class MultimodalDemoAnalyzer:
 
             raw_video_rows: list[dict[str, float]] = []
             raw_video_top_rows: list[tuple[str, float]] = []
-            for frame_predictions in predictions:
-                video_probs_raw = remap_predictions(frame_predictions, VIDEO_LABEL_MAP)
+            for logits in frame_logits:
+                video_probs_raw = self._probabilities_from_logits(logits, self.config.video_temperature)
                 raw_video_top_rows.append((max(video_probs_raw, key=video_probs_raw.get), float(max(video_probs_raw.values()))))
-                raw_video_rows.append(self._adjust_video_probabilities(video_probs_raw))
+                raw_video_rows.append(video_probs_raw)
 
             smoothed_video_rows = self._smooth_probability_sequence(raw_video_rows)
             detected_flags = list(face_meta.get("detected_flags", []))
@@ -1235,6 +1255,7 @@ class MultimodalDemoAnalyzer:
                 "stats_rows": stats_rows,
                 "modality_rows": modality_rows,
                 "text_prob_rows": text_prob_rows,
+                "text_chunk_rows": text_chunk_rows,
                 "audio_prob_rows": audio_prob_rows,
                 "transcript": transcript,
                 "transcript_source": transcript_source,
@@ -1337,30 +1358,34 @@ class MultimodalDemoAnalyzer:
             uniform = {label: 1.0 / len(COMMON_LABELS) for label in COMMON_LABELS}
             return uniform, {}
 
-        normalized_sets: list[tuple[str, dict[str, float]]] = []
-        reliability: dict[str, tuple[float, float]] = {}
+        predictions: list[PredictionResult] = []
         for item in named_probability_sets:
             name = item[0]
             probabilities = item[1]
             confidence = float(item[2]) if len(item) >= 3 else confidence_from_scores(probabilities)
             quality = float(item[3]) if len(item) >= 4 else 1.0
-            normalized_sets.append((name, probabilities))
-            reliability[name] = (confidence, quality)
+            values = np.array([float(probabilities.get(label, 0.0)) for label in COMMON_LABELS], dtype=np.float64)
+            values = self._normalize_probability_array(values)
+            predictions.append(
+                PredictionResult(
+                    modality=name,
+                    available=True,
+                    labels=list(COMMON_LABELS),
+                    logits=None,
+                    probs=[float(value) for value in values],
+                    pred_label=COMMON_LABELS[int(np.argmax(values))],
+                    confidence=confidence,
+                    quality={"quality_weight_multiplier": quality},
+                    error=None,
+                )
+            )
 
-        modality_names = [name for name, _ in normalized_sets]
-        modality_weights = self._build_multimodal_weights(modality_names, reliability)
-        fused = {label: 0.0 for label in COMMON_LABELS}
-        for name, probabilities in normalized_sets:
-            weight = float(modality_weights.get(name, 0.0))
-            for label in COMMON_LABELS:
-                fused[label] += weight * float(probabilities.get(label, 0.0))
-
-        total = float(sum(fused.values()))
-        if total <= 0.0:
+        result = self._fusion_engine.fuse(predictions)
+        if not result.available or result.probs is None:
             uniform = {label: 1.0 / len(COMMON_LABELS) for label in COMMON_LABELS}
-            return uniform, modality_weights
-        normalized = {label: score / total for label, score in fused.items()}
-        return normalized, modality_weights
+            return uniform, {}
+        normalized = {label: float(result.probs[index]) for index, label in enumerate(COMMON_LABELS)}
+        return normalized, dict(result.quality.get("weights_used", {}))
 
     @staticmethod
     def _modality_rows(modalities: list[ModalitySummary], fusion_weights: dict[str, float]) -> list[dict]:
@@ -1392,8 +1417,9 @@ class MultimodalDemoAnalyzer:
             transcript, transcript_source, transcript_note = self.transcribe_audio(audio_path, transcript_override)
             self._raise_if_cancelled()
 
+            text_modality, text_chunk_rows = self.classify_hf_text(transcript, transcript_source)
             modalities: list[ModalitySummary] = [
-                self.classify_hf_text(transcript),
+                text_modality,
                 self.classify_hf_video(video_path, workspace),
             ]
             self._raise_if_cancelled()
@@ -1427,6 +1453,7 @@ class MultimodalDemoAnalyzer:
                 "probabilities": blended_probabilities,
                 "probability_rows": probability_rows,
                 "modality_rows": modality_rows,
+                "text_chunk_rows": text_chunk_rows,
                 "transcript": transcript,
                 "transcript_source": transcript_source,
                 "fusion_weights": {
@@ -1438,6 +1465,6 @@ class MultimodalDemoAnalyzer:
                 "notes": {
                     "audio": audio_note,
                     "transcript": transcript_note,
-                    "fusion": "Text weight is reduced by 30% and redistributed to other available modalities.",
+                    "fusion": "Fusion uses canonical probabilities, quality multipliers, and renormalized modality weights.",
                 },
             }

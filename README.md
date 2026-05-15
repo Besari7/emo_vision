@@ -10,6 +10,9 @@ Older BERT, EfficientNet, or old-label-order references are legacy/prototype/com
 
 EmoVision is a local multimodal emotion analysis demo.
 
+Repository URL:
+- `https://github.com/Besari7/emo_vision`
+
 It takes a video upload and combines:
 - text emotion signals (from transcript)
 - audio emotion signals
@@ -81,7 +84,7 @@ Model/artifact files are local and not committed to GitHub.
 Expected paths:
 - `artifacts/audio_models/wav2vec2_xlsr_savee_tess_ravdess_rf_style_earlystop/`
 - `artifacts/text_models/roberta_large_goemotions_ekman_v2_continued_from_direct7/`
-- `artifacts/video_models/mo-thecreator-vit-Facial-Expression-Recognition/`
+- `artifacts/video_models/vit_based_fer_model/`
 - `assets/ui/header_emovision.png`
 
 The audio and text artifact packages keep loadable model files under their `best_model/` subfolders. The demo resolves those folders automatically.
@@ -90,7 +93,7 @@ The previous text artifact, `artifacts/text_models/roberta_large_goemotions_v2_c
 
 ## Data, Artifacts, and License Policy
 
-Required model artifacts are local-only and are not distributed with this repository. Datasets and trained weights/checkpoints are not committed. This project is academic/non-commercial.
+Required model artifacts are local-only and are not distributed with this repository. Datasets and trained weights/checkpoints are not committed. This includes the local `vit_based_fer_model` video weights under `artifacts/video_models/`. This project is academic/non-commercial.
 
 Policy references:
 - [docs/final_report/LICENSE_AND_DATA_POLICY.md](docs/final_report/LICENSE_AND_DATA_POLICY.md)

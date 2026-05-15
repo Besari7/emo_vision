@@ -13,6 +13,7 @@ This repository is prepared for public code review while keeping restricted data
 - Raw datasets.
 - Preprocessed datasets or manifests derived from restricted datasets.
 - Model weights, checkpoints, and runtime artifacts trained on NC or restricted datasets.
+- Third-party local inference weights, including `artifacts/video_models/vit_based_fer_model`.
 - Calibration outputs (unless explicitly approved for release).
 
 ## Non-Commercial Academic Use

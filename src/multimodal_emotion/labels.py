@@ -42,16 +42,100 @@ LABEL_ALIASES = {
 
 
 def normalize_label(label: str) -> str:
-    normalized = label.strip().lower().replace("_", " ").replace("-", " ")
+    normalized = str(label).strip().lower().replace("_", " ").replace("-", " ")
     normalized = " ".join(normalized.split())
     return LABEL_ALIASES.get(normalized, normalized)
 
 
+label_to_id = {label: index for index, label in enumerate(CANONICAL_LABELS)}
+id_to_label = {index: label for index, label in enumerate(CANONICAL_LABELS)}
+
+
 def label_to_index(label: str) -> int:
     normalized = normalize_label(label)
-    if normalized not in CANONICAL_LABELS:
+    if normalized not in label_to_id:
         raise ValueError(f"Unknown canonical emotion label: {label!r}")
-    return CANONICAL_LABELS.index(normalized)
+    return label_to_id[normalized]
+
+
+def validate_label_set(source_labels: Sequence[str]) -> list[str]:
+    normalized_labels = [normalize_label(label) for label in source_labels]
+    if len(normalized_labels) != len(CANONICAL_LABELS):
+        raise ValueError(
+            "Model output label count must be exactly "
+            f"{len(CANONICAL_LABELS)}; received {len(normalized_labels)} labels: {list(source_labels)!r}."
+        )
+
+    seen: set[str] = set()
+    duplicates: list[str] = []
+    unknown: list[str] = []
+    for raw_label, normalized in zip(source_labels, normalized_labels, strict=True):
+        if normalized not in label_to_id:
+            unknown.append(str(raw_label))
+            continue
+        if normalized in seen:
+            duplicates.append(str(raw_label))
+        seen.add(normalized)
+
+    if unknown:
+        raise ValueError(f"Unknown model labels after alias normalization: {unknown}.")
+    if duplicates:
+        raise ValueError(f"Duplicate model labels after alias normalization: {duplicates}.")
+
+    missing = [label for label in CANONICAL_LABELS if label not in seen]
+    if missing:
+        raise ValueError(f"Model labels are missing canonical labels: {missing}.")
+
+    return normalized_labels
+
+
+def _coerce_vector(values: Mapping[str, float] | Sequence[float] | np.ndarray, source_labels: Sequence[str], name: str) -> np.ndarray:
+    if isinstance(values, Mapping):
+        vector = np.asarray([float(values[label]) for label in source_labels], dtype=np.float64)
+    else:
+        vector = np.asarray(values, dtype=np.float64)
+
+    if vector.ndim != 1:
+        raise ValueError(f"{name} must be a 1D vector; received shape {vector.shape}.")
+    if vector.shape[0] != len(CANONICAL_LABELS):
+        raise ValueError(
+            f"{name} vector length must be exactly {len(CANONICAL_LABELS)}; "
+            f"received {vector.shape[0]}."
+        )
+    if len(source_labels) != len(CANONICAL_LABELS):
+        raise ValueError(
+            "Source label count must be exactly "
+            f"{len(CANONICAL_LABELS)}; received {len(source_labels)}."
+        )
+    return vector
+
+
+def _reorder_vector_to_canonical(
+    values: Mapping[str, float] | Sequence[float] | np.ndarray,
+    source_labels: Sequence[str],
+    name: str,
+) -> np.ndarray:
+    vector = _coerce_vector(values, source_labels, name)
+    normalized_labels = validate_label_set(source_labels)
+    source_index_by_label = {label: index for index, label in enumerate(normalized_labels)}
+    return np.asarray(
+        [float(vector[source_index_by_label[label]]) for label in CANONICAL_LABELS],
+        dtype=np.float64,
+    )
+
+
+def reorder_probs_to_canonical(
+    probs: Mapping[str, float] | Sequence[float] | np.ndarray,
+    source_labels: Sequence[str],
+) -> np.ndarray:
+    return _reorder_vector_to_canonical(probs, source_labels, "Probability")
+
+
+def reorder_logits_to_canonical(
+    logits: Mapping[str, float] | Sequence[float] | np.ndarray,
+    source_labels: Sequence[str],
+) -> np.ndarray:
+    return _reorder_vector_to_canonical(logits, source_labels, "Logit")
 
 
 def reorder_probabilities(
@@ -59,33 +143,11 @@ def reorder_probabilities(
     source_labels: Sequence[str],
     target_labels: Sequence[str] = CANONICAL_LABELS,
 ) -> dict[str, float]:
-    if isinstance(probabilities, Mapping):
-        values = [float(probabilities[label]) for label in source_labels]
-    else:
-        values = [float(value) for value in probabilities]
-
-    if len(values) != len(source_labels):
-        raise ValueError(
-            "Probability count does not match source label count: "
-            f"{len(values)} probabilities for {len(source_labels)} labels."
-        )
-
     target_normalized = [normalize_label(label) for label in target_labels]
-    unknown_targets = [label for label in target_normalized if label not in CANONICAL_LABELS]
-    if unknown_targets:
-        raise ValueError(f"Unknown target labels: {unknown_targets}")
-
-    aligned = {label: 0.0 for label in target_normalized}
-    seen_sources: set[str] = set()
-    for source_label, value in zip(source_labels, values, strict=True):
-        normalized = normalize_label(source_label)
-        if normalized not in CANONICAL_LABELS:
-            raise ValueError(f"Cannot map source label {source_label!r} to a canonical emotion label.")
-        if normalized in seen_sources:
-            raise ValueError(f"Duplicate source label after normalization: {source_label!r} -> {normalized!r}")
-        if normalized not in aligned:
-            raise ValueError(f"Source label {source_label!r} maps to {normalized!r}, which is absent from target labels.")
-        aligned[normalized] = float(value)
-        seen_sources.add(normalized)
-
-    return {label: float(aligned[label]) for label in target_normalized}
+    if target_normalized != CANONICAL_LABELS:
+        raise ValueError(
+            "Only canonical target label order is supported for probability reordering. "
+            f"Received {target_labels!r}."
+        )
+    aligned = reorder_probs_to_canonical(probabilities, source_labels)
+    return {label: float(aligned[index]) for index, label in enumerate(CANONICAL_LABELS)}

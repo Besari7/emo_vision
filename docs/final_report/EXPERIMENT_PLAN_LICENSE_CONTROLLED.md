@@ -38,7 +38,7 @@ Canonical label order:
 - SAVEE use requires registration/license approval; dataset files and derived artifacts remain local-only.
 
 ## Video
-- Use mo-thecreator/vit-Facial-Expression-Recognition as a third-party integrated inference model.
+- Use the vit_based_fer_model as a third-party integrated inference model.
 - Do not fine-tune and do not commit weights.
 - Document license uncertainty clearly.
 
@@ -46,3 +46,6 @@ Canonical label order:
 - Do not use MELD for full fine-tuning.
 - Allowed: temperature scaling, class-specific bias, optional fusion weight search.
 - Calibration outputs are local artifacts unless explicitly approved.
+- MELD results are domain-shift diagnostics, not final fusion calibration.
+- Final fusion calibration should be done on a target-domain validation manifest.
+- MELD grid-search outputs must not be copied automatically into `configs/final_capstone.json` or used to change demo default weights.

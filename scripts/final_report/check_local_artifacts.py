@@ -6,7 +6,7 @@ from pathlib import Path
 MODEL_PATHS = {
     "text": Path("artifacts/text_models/roberta_large_goemotions_ekman_v2_continued_from_direct7"),
     "audio": Path("artifacts/audio_models/wav2vec2_xlsr_savee_tess_ravdess_rf_style_earlystop"),
-    "video": Path("artifacts/video_models/mo-thecreator-vit-Facial-Expression-Recognition"),
+    "video": Path("artifacts/video_models/vit_based_fer_model"),
 }
 
 COMMON_FILES = {

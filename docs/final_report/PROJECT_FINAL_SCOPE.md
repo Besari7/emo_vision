@@ -32,6 +32,8 @@ The final canonical emotion labels are:
 
 The final visual branch is a ViT-based facial-expression recognition branch.
 
+The local inference artifact path is `artifacts/video_models/vit_based_fer_model`. It is treated as a third-party integrated inference model; weights remain local-only and are not distributed in the GitHub repository.
+
 Additional ViT fine-tuning was attempted during development, but MELD-related class imbalance caused poor early behavior. The final visual work focuses on integration, inference pipeline adaptation, label/probability alignment, backend/frontend compatibility, demo support, and fusion compatibility.
 
 Do not claim that the visual branch is a fully re-trained project-specific visual model.
@@ -43,3 +45,5 @@ Fusion operates on modality probability outputs. Text, audio, and visual probabi
 `neutral`, `surprise`, `fear`, `sadness`, `joy`, `disgust`, `anger`
 
 Final fusion metrics must only be reported if generated from actual final repository outputs. Do not invent metrics, reuse placeholder outputs, or treat external model-card scores as project-owned final results.
+
+MELD results are domain-shift diagnostics, not final fusion calibration. Final fusion calibration should be done on a target-domain validation manifest, and MELD grid-search outputs must not be applied automatically to the demo or to `configs/final_capstone.json`.

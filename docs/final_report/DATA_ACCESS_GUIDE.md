@@ -21,7 +21,7 @@ This guide lists public access points for datasets and license references. The r
 - EmotionLines: https://sites.google.com/view/emotionx2019/datasets
 - MELD (project site): https://affective-meld.github.io/
 - MELD (dataset card): https://huggingface.co/datasets/declare-lab/MELD
-- ViT facial-expression model card: https://huggingface.co/mo-thecreator/vit-Facial-Expression-Recognition
+- vit_based_fer_model model card: local-only reference (link removed)
 
 ## Local Handling
 - Use the experiment configs under configs/experiments to record label mappings and planned outputs.

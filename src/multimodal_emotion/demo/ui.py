@@ -367,6 +367,7 @@ def build_demo(analyzer: MultimodalDemoAnalyzer | None = None) -> gr.Blocks:
         pd.DataFrame,
         pd.DataFrame,
         pd.DataFrame,
+      pd.DataFrame,
         str,
         str,
         str | None,
@@ -391,6 +392,7 @@ def build_demo(analyzer: MultimodalDemoAnalyzer | None = None) -> gr.Blocks:
         stats_df = pd.DataFrame(result["stats_rows"])
         modality_df = pd.DataFrame(result["modality_rows"])
         text_df = pd.DataFrame(result["text_prob_rows"])
+        text_chunk_df = pd.DataFrame(result.get("text_chunk_rows", []))
 
         fused_columns = ["frame_no", "video_top_emotion", "video_top_confidence", "top_emotion", "top_confidence"] + COMMON_LABELS
         video_columns = ["frame_no", "top_emotion", "top_confidence"] + COMMON_LABELS
@@ -406,6 +408,11 @@ def build_demo(analyzer: MultimodalDemoAnalyzer | None = None) -> gr.Blocks:
             audio_window_df = audio_window_df[audio_columns]
         else:
             audio_window_df = pd.DataFrame(columns=audio_columns)
+        chunk_columns = ["chunk_index", "chunk_text", "num_tokens", "weight", "top_emotion", "confidence", *COMMON_LABELS]
+        if text_chunk_df.empty:
+          text_chunk_df = pd.DataFrame(columns=chunk_columns)
+        else:
+          text_chunk_df = text_chunk_df[chunk_columns]
         return (
             fused_chart_df,
             fused_frame_df,
@@ -416,6 +423,7 @@ def build_demo(analyzer: MultimodalDemoAnalyzer | None = None) -> gr.Blocks:
             audio_chart_df,
             audio_window_df,
             text_df,
+          text_chunk_df,
             result["transcript"],
             _build_spotlight_html(result),
             result.get("preprocessed_video_path"),
@@ -564,6 +572,13 @@ def build_demo(analyzer: MultimodalDemoAnalyzer | None = None) -> gr.Blocks:
                         interactive=False,
                         label="Text-Only Emotion Distribution",
                     )
+                    with gr.Accordion("Text Chunk Debug (Optional)", open=False):
+                        text_chunk_output = gr.Dataframe(
+                            headers=["chunk_index", "chunk_text", "num_tokens", "weight", "top_emotion", "confidence", *COMMON_LABELS],
+                            datatype=["number", "str", "number", "number", "str", "number", *["number"] * len(COMMON_LABELS)],
+                            interactive=False,
+                            label="Text Chunk Details",
+                        )
 
             with gr.Accordion("Debug Payload", open=False):
                 raw_output = gr.JSON(label="Raw Analysis")
@@ -587,6 +602,7 @@ def build_demo(analyzer: MultimodalDemoAnalyzer | None = None) -> gr.Blocks:
                     audio_plot_output,
                     audio_window_output,
                     text_output,
+                    text_chunk_output,
                     transcript_quick_output,
                     info_output,
                     preprocessed_preview_side_output,

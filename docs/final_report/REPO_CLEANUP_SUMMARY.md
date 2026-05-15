@@ -17,7 +17,7 @@ Scope used for this review:
 - `README.md`
   - Describes the active local EmoVision demo.
   - Points to the current demo entrypoint, service, UI, fusion code, and expected local artifact paths.
-  - Correctly lists the ViT visual artifact path: `artifacts/video_models/mo-thecreator-vit-Facial-Expression-Recognition/`.
+  - Correctly lists the ViT visual artifact path: `artifacts/video_models/vit_based_fer_model/`.
   - Needs final wording expansion, but appears aligned with the active demo workflow.
 
 - `scripts/run_demo.py`

@@ -5,13 +5,15 @@ from dataclasses import dataclass
 import numpy as np
 
 from multimodal_emotion.labels import CANONICAL_LABELS, normalize_label, reorder_probabilities
+from multimodal_emotion.inference.fusion import FusionEngine
+from multimodal_emotion.inference.result import PredictionResult
 
 
 COMMON_LABELS = list(CANONICAL_LABELS)
 
 MODALITY_BASE_WEIGHTS = {
-    "text": 0.40,
-    "audio": 0.35,
+    "text": 0.55,
+    "audio": 0.20,
     "video": 0.25,
 }
 
@@ -111,18 +113,10 @@ def confidence_from_scores(probabilities: dict[str, float]) -> float:
 
 
 def weighted_fusion(modalities: list[ModalitySummary]) -> dict:
-    fused = np.zeros(len(COMMON_LABELS), dtype=np.float64)
-    modality_weights: dict[str, float] = {}
-
+    predictions: list[PredictionResult] = []
     for modality in modalities:
         if modality.status not in {"ok", "fallback"}:
             continue
-
-        base_weight = MODALITY_BASE_WEIGHTS[modality.name]
-        quality_weight = max(modality.quality, 0.20)
-        confidence_weight = max(modality.confidence, 0.10)
-        final_weight = base_weight * quality_weight * confidence_weight
-        modality_weights[modality.name] = float(final_weight)
 
         # Canonical order is required here; otherwise vector indices can mix
         # emotions across modalities during probability-level fusion.
@@ -131,17 +125,30 @@ def weighted_fusion(modalities: list[ModalitySummary]) -> dict:
             source_labels=list(modality.probabilities.keys()),
             target_labels=COMMON_LABELS,
         )
-        fused += final_weight * np.array([aligned_probabilities[label] for label in COMMON_LABELS])
+        predictions.append(
+            PredictionResult(
+                modality=modality.name,  # type: ignore[arg-type]
+                available=True,
+                labels=list(COMMON_LABELS),
+                logits=None,
+                probs=[float(aligned_probabilities[label]) for label in COMMON_LABELS],
+                pred_label=max(aligned_probabilities, key=aligned_probabilities.get),
+                confidence=confidence_from_scores(aligned_probabilities),
+                quality={"quality_weight_multiplier": float(modality.quality)},
+                error=None,
+            )
+        )
 
-    if not modality_weights:
+    if not predictions:
         raise ValueError("At least one modality must be available for fusion.")
 
-    fused = fused / fused.sum()
-    probabilities = {label: float(fused[index]) for index, label in enumerate(COMMON_LABELS)}
+    result = FusionEngine(global_weights=MODALITY_BASE_WEIGHTS).fuse(predictions)
+    assert result.probs is not None
+    probabilities = {label: float(result.probs[index]) for index, label in enumerate(COMMON_LABELS)}
     predicted_label = max(probabilities, key=probabilities.get)
     return {
         "predicted_label": predicted_label,
         "probabilities": probabilities,
         "confidence": float(probabilities[predicted_label]),
-        "modality_weights": modality_weights,
+        "modality_weights": result.quality.get("weights_used", {}),
     }
